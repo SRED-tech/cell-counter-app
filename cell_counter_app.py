@@ -8,7 +8,6 @@ import pandas as pd
 
 
 # ------------------ Core processing function ------------------ #
-
 def process_image_array(
     img_rgb: np.ndarray,
     threshold: int,
@@ -61,7 +60,6 @@ def process_image_array(
             thresh_val = (1.0 - split_strength) * dist.max()
         else:
             thresh_val = 0
-
         _, sure_fg = cv2.threshold(dist, thresh_val, 255, cv2.THRESH_BINARY)
         sure_fg = sure_fg.astype(np.uint8)
 
@@ -104,7 +102,6 @@ def process_image_array(
 
 
 # ------------------ ROI helper ------------------ #
-
 def get_roi_and_scale(img_rgb: np.ndarray, use_roi: bool, roi_choice: str):
     """
     Returns:
@@ -114,6 +111,7 @@ def get_roi_and_scale(img_rgb: np.ndarray, use_roi: bool, roi_choice: str):
     If use_roi is False, returns the full image and scale_factor = 1.
     """
     h, w, _ = img_rgb.shape
+
     if not use_roi:
         return img_rgb, (0, 0, w, h), 1.0
 
@@ -135,14 +133,15 @@ def get_roi_and_scale(img_rgb: np.ndarray, use_roi: bool, roi_choice: str):
         y1 = y0 + h_half
 
     roi = img_rgb[y0:y1, x0:x1].copy()
+
     area_full = float(w * h)
     area_roi = float((x1 - x0) * (y1 - y0))
     scale_factor = area_full / area_roi if area_roi > 0 else 1.0
+
     return roi, (x0, y0, x1, y1), scale_factor
 
 
 # ------------------ Streamlit UI ------------------ #
-
 st.title("Fluorescent Cell Counter (B/W + Red Dots + Batch + ROI)")
 
 st.write(
@@ -245,7 +244,6 @@ roi_choice = st.sidebar.selectbox(
 )
 
 # ------------ Single-image tuning section ------------ #
-
 st.header("1️⃣ Tune parameters on a single image")
 
 single_file = st.file_uploader(
@@ -263,8 +261,9 @@ if single_file is not None:
     orig_disp = img_rgb_full.copy()
     if use_roi:
         cv2.rectangle(orig_disp, (x0, y0), (x1, y1), (0, 255, 0), 2)  # green box
+
     st.subheader("Original uploaded image (green box = region counted)" if use_roi else "Original uploaded image")
-    st.image(orig_disp, use_column_width=True)
+    st.image(orig_disp, use_container_width=True)
 
     # Process ROI
     initial_bw, final_bw, overlay_rgb, roi_count = process_image_array(
@@ -280,11 +279,11 @@ if single_file is not None:
     )
 
     st.subheader("ROI black & white mask (white = detected signal)")
-    st.image(initial_bw, clamp=True, use_column_width=True)
+    st.image(initial_bw, clamp=True, use_container_width=True)
 
     if split_touching:
         st.subheader("ROI mask after splitting touching cells")
-        st.image(final_bw, clamp=True, use_column_width=True)
+        st.image(final_bw, clamp=True, use_container_width=True)
 
     # Estimated total count (scaled)
     est_total = int(round(roi_count * scale_factor))
@@ -293,7 +292,7 @@ if single_file is not None:
         f"Detected cells in ROI with RED markers (ROI count = {roi_count}, "
         f"scale ×{scale_factor:.2f}, estimated total ≈ {est_total})"
     )
-    st.image(overlay_rgb, use_column_width=True)
+    st.image(overlay_rgb, use_container_width=True)
 
     # Downloads for this image (ROI-level)
     buf_final = io.BytesIO()
@@ -317,12 +316,10 @@ if single_file is not None:
         mime="image/png",
         key="dl_single_overlay",
     )
-
 else:
     st.info("Upload one image above to fine-tune your settings (and ROI) before batch counting.")
 
 # ------------ Batch processing section ------------ #
-
 st.header("2️⃣ Batch count multiple images with current settings + ROI")
 
 batch_files = st.file_uploader(
@@ -365,6 +362,7 @@ if batch_files:
             )
 
             est_total = int(round(roi_count * scale_factor))
+
             filename = f.name
             results.append(
                 {
